@@ -1,0 +1,35 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+module:testrunner
+
+GET     /                                       App.Index
+
+# Ignore favicon requests
+GET     /favicon.ico                            404
+
+# Map static resources from the /app/public folder to the /public path
+GET     /public/*filepath                       Static.Serve("public")
+
+# Catch all
+#*       /:controller/:action                    :controller.:action
+
+GET		/auth/login								Auth.Login
+POST	/auth/loginWithToken					Auth.LoginWithToken
+GET		/auth/logout							Auth.Logout
+
+GET		/admin/dashboard						Admin.Dashboard
+GET		/admin/music/list						Admin.MusicList
+GET		/admin/artist/list						Admin.ArtistList
+GET		/admin/album/list						Admin.AlbumList
+GET		/admin/playlist/list					Admin.PlaylistList
+GET		/admin/user/list						Admin.UserList
+GET		/admin/my/profile						Admin.MyProfile
+POST	/admin/my/profile						Admin.UpdateMyProfile
+POST	/admin/my/toolsession					Admin.UpdateToolSession
+
+GET		/api/url/:target						MuseApi.GetUrl
+GET		/api/_page/login						MuseApi.PcLogin
+POST	/api/login/tool							MuseApi.LoginTool
+POST	/api/upload/music						MuseApi.UploadMusic

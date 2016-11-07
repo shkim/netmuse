@@ -1,0 +1,10 @@
+.DS_Store
+*.bak
+tmp/
+test-results/
+routes/
+admin/*.json
+admin/conf/app.conf
+tools/**/target
+tools/**/.idea
+tools/**/*.iml

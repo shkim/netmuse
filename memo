@@ -1,0 +1,7 @@
+* GOPATH setup:
+mkdir -p $GOPATH/src/netmuse
+ln -s `pwd`/admin $GOPATH/src/netmuse/admin
+ln -s `pwd`/user $GOPATH/src/netmuse/user
+
+* Run:
+revel run netmuse/admin

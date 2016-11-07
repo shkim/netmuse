@@ -1,0 +1,93 @@
+{{set . "title" "내 프로필"}}
+{{set . "lmenu" "t6b"}}
+{{template "tpl_head.html" .}}
+
+<div class="row">
+  <div class="col-md-12 col-sm-12 col-xs-12">
+    <div class="x_panel">
+      <div class="x_title">
+        <h2>My Profile</h2>
+        <div class="clearfix"></div>
+      </div>
+
+      <div class="x_content">
+        <br>
+        <form id="form1" method="POST" data-parsley-validate="" class="form-horizontal form-label-left" novalidate="">
+          <div class="form-group">
+            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="email">Email <span class="required">*</span>
+            </label>
+            <div class="col-md-6 col-sm-6 col-xs-12">
+              <input type="text" id="email" required="required" class="form-control col-md-7 col-xs-12" readonly value="{{.user.Email}}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="dispname">Display Name <span class="required">*</span>
+            </label>
+            <div class="col-md-6 col-sm-6 col-xs-12">
+              <input type="text" id="dispname" name="dispname" required="required" class="form-control col-md-7 col-xs-12" value="{{.user.Name}}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="photourl" class="control-label col-md-3 col-sm-3 col-xs-12">Photo URL</label>
+            <div class="col-md-6 col-sm-6 col-xs-12">
+              <input id="photourl" class="form-control col-md-7 col-xs-12" type="text" name="photourl" value="{{.user.PhotoUrl}}">
+            </div>
+          </div>
+          <div class="ln_solid"></div>
+          <div class="form-group">
+            <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+              <input type="reset" class="btn btn-primary" value="Reset">
+              <button type="submit" class="btn btn-success">Update</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<div class="row">
+  <div class="col-md-12 col-sm-12 col-xs-12">
+    <div class="x_panel">
+      <div class="x_title">
+        <h2>Tool Session</h2>
+        <div class="clearfix"></div>
+      </div>
+
+      <div class="x_content">
+        <br>
+        <form id="form1" action="/admin/my/toolsession" method="POST" data-parsley-validate="" class="form-horizontal form-label-left" novalidate="">
+          <div class="form-group">
+            <label class="control-label col-md-3 col-sm-3 col-xs-12" for="first-name">Secret
+            </label>
+            <div class="input-group col-md-6 col-sm-6 col-xs-12">
+              <input type="text" class="form-control" name="secret" id="toolSecret" value="{{.secret}}">
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-primary" onclick="genToolSecret()">Generate</button>
+              </span>
+            </div>
+          </div>
+          <div class="ln_solid"></div>
+          <div class="form-group">
+            <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">              
+              <button type="submit" class="btn btn-success">Update</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+{{template "tpl_mid.html" .}}
+<script>
+function genToolSecret()
+{
+  var str = Math.random().toString(36).substr(2, 12);
+  $('#toolSecret').val(str);
+}
+</script>
+{{template "tpl_tail.html" .}}
