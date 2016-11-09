@@ -24,9 +24,11 @@ type MuseApi struct {
 }
 
 const (
-	API_INVALID_PARAM = 1
-	API_AUTH_FAILED = 10
-	API_SESSION_INITFAIL = 20
+	API_SESSION_INITFAIL = 1
+	API_AUTH_FAILED = 2
+
+	API_INVALID_PARAM = 10
+	API_MUSICFILE_DUPLICATE = 11
 	API_INTERNAL_SERVER_ERROR = 99
 
 
@@ -49,26 +51,33 @@ func (c MuseApi) apiOk(msg string, data interface{}) revel.Result {
 	return c.RenderJson(apiResult{Code: 0, Msg: msg, Data: data})
 }
 
-func (c MuseApi) apiError0(errCode int) revel.Result {
-	var msg string
+func apiCodeToMsg(errCode int) string {
 	switch(errCode) {
 	case API_INVALID_PARAM:
-		msg = "Invalid parameters"
+		return "Invalid parameters"
+	case API_MUSICFILE_DUPLICATE:
+		return "Music file duplicate error"
 	case API_AUTH_FAILED:
-		msg = "AuthFailed"
+		return "Auth failed"
 	case API_SESSION_INITFAIL:
-		msg = "Session init failed"
+		return "Session init failed"
 	case API_INTERNAL_SERVER_ERROR:
-		msg = "Internal Server Error"
+		return "Internal server error"
 	default:
-		msg = "ERROR"
+		return "Unknown error"
 	}
-	
-	return c.RenderJson(apiResult{Code:errCode, Msg:msg, Data:nil})
+}
+
+func (c MuseApi) apiError0(errCode int) revel.Result {		
+	return c.RenderJson(apiResult{Code:errCode, Msg:apiCodeToMsg(errCode), Data:nil})
 }
 
 func (c MuseApi) apiErrorMsg(errCode int, msg string) revel.Result {
 	return c.RenderJson(apiResult{Code:errCode, Msg:msg, Data:nil})
+}
+
+func (c MuseApi) apiErrorData(errCode int, data interface{}) revel.Result {
+	return c.RenderJson(apiResult{Code:errCode, Msg:apiCodeToMsg(errCode), Data:data})
 }
 
 type retUrl struct {
@@ -262,6 +271,11 @@ type someMetaInfo struct {
 	Genre string `json:"genre"`
 }
 
+type uploadResult struct {
+	MusicId int64 `json:"music_id"`
+	FileId int64 `json:"file_id"`
+}
+
 func (c MuseApi) UploadMusic() revel.Result {
 
 	userId := c.getUserIdFromSesskey()
@@ -318,6 +332,15 @@ func (c MuseApi) UploadMusic() revel.Result {
 		return c.apiErrorMsg(API_INVALID_PARAM, "Music data inconsistency error")
 	}
 
+	// check if same file uploaded before
+	var musFileId, musicId int64
+	var retData uploadResult
+	err = db.QueryRow(`SELECT id, music_id FROM musfile WHERE file_size=? AND file_md5=?`, fileSize, fileMD5).Scan(&musFileId, &musicId)
+	if err == nil {
+		retData.FileId = musFileId
+		retData.MusicId = musicId
+		return c.apiErrorData(API_MUSICFILE_DUPLICATE, &retData)
+	}
 
 	var photoId sql.NullInt64
 	fhImage := c.Params.Files["image"]
@@ -351,7 +374,7 @@ func (c MuseApi) UploadMusic() revel.Result {
 		return c.apiErrorMsg(API_INTERNAL_SERVER_ERROR, err.Error())
     }
 
-	musFileId, err := res.LastInsertId()
+	musFileId, err = res.LastInsertId()
 	if err != nil {
 		revel.ERROR.Printf("musfile LastInsertId failed: %s\n", err.Error())
 		return c.apiErrorMsg(API_INTERNAL_SERVER_ERROR, err.Error())
@@ -387,7 +410,7 @@ func (c MuseApi) UploadMusic() revel.Result {
 		return c.apiErrorMsg(API_INTERNAL_SERVER_ERROR, err.Error())
     }
 
-	musicId, err := res.LastInsertId()
+	musicId, err = res.LastInsertId()
 	if err != nil {
 		revel.ERROR.Printf("music LastInsertId failed: %s\n", err.Error())
 		return c.apiErrorMsg(API_INTERNAL_SERVER_ERROR, err.Error())
@@ -395,7 +418,8 @@ func (c MuseApi) UploadMusic() revel.Result {
 
 	db.MustExec("UPDATE musfile SET music_id=?, obj_id=? WHERE id=?", musicId, objId.Hex(), musFileId)
 
-	var data = map[string]interface{} { "music_id":musicId, "file_id":musFileId }	
 
-	return c.apiOk("OK", &data)
+	retData.FileId = musFileId
+	retData.MusicId = musicId
+	return c.apiOk("OK", &retData)
 }
