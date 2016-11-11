@@ -15,6 +15,8 @@ class FileListModel implements TableModel
 {
 	public static class Item
 	{
+		public String uploadState;
+
 		public String filePath;
 		public String fileName;
 		public String fileType;	// mp3
@@ -122,6 +124,9 @@ class FileListModel implements TableModel
 			return item.artist;
 		case 4:
 			return item.album;
+
+		case 5:
+			return item.uploadState == null ? "Wait" : item.uploadState;
 		}
 
 		return "TODO";
@@ -154,6 +159,12 @@ class FileListModel implements TableModel
 	public Item getItem(int index)
 	{
 		return m_items.get(index);
+	}
+
+
+	public void clear()
+	{
+		m_items.clear();
 	}
 
 	public boolean addFile(File file)

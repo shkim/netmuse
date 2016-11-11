@@ -33,6 +33,20 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 	private JPanel pnlCoverImg;
 
 	private FileListModel m_model;
+	private FileListModel.Item m_curEditItem;
+	private int m_iCurrUploadItem = -1;
+
+	public MainForm()
+	{
+		btnUpdate.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				onUpdateItemInfo();
+			}
+		});
+	}
 
 	public JPanel initComponents(JFrame frm)
 	{
@@ -77,6 +91,17 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 		menuItem.getAccessibleContext().setAccessibleDescription("Browse music file to import");
 		menu.add(menuItem);
 
+		menuItem = new JMenuItem("Clear list", KeyEvent.VK_C);
+		menuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.ALT_MASK));
+		menuItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				onClearList();
+			}
+		});
+		menu.add(menuItem);
+
 
 		menu = new JMenu("Upload");
 		menu.setMnemonic(KeyEvent.VK_U);
@@ -111,6 +136,8 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 
 	public void onTableItemSelected(FileListModel.Item item)
 	{
+		m_curEditItem = item;
+
 		tfFilePath.setText(item.filePath);
 		tfTitle.setText(item.title);
 		tfArtist.setText(item.artist);
@@ -169,29 +196,132 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 		}
 	}
 
+	private boolean checkIsUploadingThenAlert()
+	{
+		if (m_iCurrUploadItem >= 0)
+		{
+			JOptionPane.showMessageDialog(basePanel, "Currently uploading in progress", FRAME_TITLE, JOptionPane.ERROR_MESSAGE);
+			return true;
+		}
+
+		return false;
+	}
+
+	private void onUpdateItemInfo()
+	{
+		if (checkIsUploadingThenAlert())
+			return;
+
+		if (m_curEditItem == null)
+			return;
+
+		m_curEditItem.title = tfTitle.getText().trim();
+		m_curEditItem.artist = tfArtist.getText().trim();
+		m_curEditItem.album = tfAlbum.getText().trim();
+
+		tblFiles.updateUI();
+	}
+
+	private void onClearList()
+	{
+		if (checkIsUploadingThenAlert())
+			return;
+
+		m_curEditItem = null;
+		m_model.clear();
+	}
+
 	private void onStartUpload()
 	{
+		if (checkIsUploadingThenAlert())
+			return;
+
 		if (m_model.getRowCount() <= 0)
 		{
 			JOptionPane.showMessageDialog(basePanel, "No items to upload", FRAME_TITLE, JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 
-		FileListModel.Item item = m_model.getItem(0);
+		m_iCurrUploadItem = 0;
+		uploadNextItem();
+
+	}
+
+	private void uploadNextItem()
+	{
+		if (m_iCurrUploadItem >= m_model.getRowCount())
+		{
+			m_iCurrUploadItem = -1;
+			JOptionPane.showMessageDialog(basePanel, "Upload finished", FRAME_TITLE, JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+
+		FileListModel.Item item = m_model.getItem(m_iCurrUploadItem);
 
 		try
 		{
+			item.uploadState = "Uploading";
 			Main.getApiService().requestUploadMusic(this, item);
 		}
-		catch (Exception e)
+		catch (Exception ex)
 		{
-			e.printStackTrace();
+			ex.printStackTrace();
+
+			m_iCurrUploadItem = -1;
+			item.uploadState = "Request failed";
+			JOptionPane.showMessageDialog(basePanel, "Upload exception: " + ex.getMessage(), FRAME_TITLE, JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
 	@Override
 	public boolean onApiResult(int jobId, boolean succeeded, Object _param)
 	{
+		if (jobId == ApiService.JOBID_UPLOAD_MUSIC)
+		{
+			if (succeeded)
+			{
+				ApiService.UploadResult param = (ApiService.UploadResult)_param;
+
+				// item check
+				FileListModel.Item curItem = m_model.getItem(m_iCurrUploadItem);
+				if (curItem.filePath.equals(param.srcPath))
+				{
+					if (param.state.equals("new"))
+						curItem.uploadState = "Success";
+					else if (param.state.equals("duplicate"))
+						curItem.uploadState = "Duplicated";
+					else
+						curItem.uploadState = "Unknown: " + param.state;
+
+					m_iCurrUploadItem++;
+					uploadNextItem();
+				}
+				else
+				{
+					JOptionPane.showMessageDialog(basePanel, "Upload result mismatch: " + param.srcPath, FRAME_TITLE, JOptionPane.ERROR_MESSAGE);
+				}
+			}
+			else
+			{
+				ApiService.ErrorInfo err = (ApiService.ErrorInfo)_param;
+
+				FileListModel.Item curItem = m_model.getItem(m_iCurrUploadItem);
+				String srcPath = err.spec.getUserVar("srcPath");
+				if (curItem.filePath.equals(srcPath))
+				{
+					curItem.uploadState = "Failed: " + err.msg;
+				}
+				else
+				{
+					curItem.uploadState = "Mismatch: " + err.msg;
+					JOptionPane.showMessageDialog(basePanel, "Upload error and mismatch: " + srcPath, FRAME_TITLE, JOptionPane.ERROR_MESSAGE);
+				}
+			}
+
+			tblFiles.updateUI();
+			return true;
+		}
+
 		System.out.println(String.format("ApiRes, Job=%d, s=%b, p=%s", jobId, succeeded, _param));
 		return false;
 	}

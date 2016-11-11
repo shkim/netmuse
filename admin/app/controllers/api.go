@@ -274,6 +274,7 @@ type someMetaInfo struct {
 type uploadResult struct {
 	MusicId int64 `json:"music_id"`
 	FileId int64 `json:"file_id"`
+	State string `json:"state"`
 }
 
 func (c MuseApi) UploadMusic() revel.Result {
@@ -329,6 +330,7 @@ func (c MuseApi) UploadMusic() revel.Result {
 	fileMD5 := c.Params.Get("filemd5")
 
 	if fileMD5 != musicMD5 || fileSize != len(musicData) {
+		revel.ERROR.Printf("MusDiff: size %d:%d md5 %s:%s\n", fileSize, len(musicData), fileMD5, musicMD5)
 		return c.apiErrorMsg(API_INVALID_PARAM, "Music data inconsistency error")
 	}
 
@@ -339,7 +341,8 @@ func (c MuseApi) UploadMusic() revel.Result {
 	if err == nil {
 		retData.FileId = musFileId
 		retData.MusicId = musicId
-		return c.apiErrorData(API_MUSICFILE_DUPLICATE, &retData)
+		retData.State = "duplicate";
+		return c.apiOk("OK", &retData)
 	}
 
 	var photoId sql.NullInt64
@@ -421,5 +424,6 @@ func (c MuseApi) UploadMusic() revel.Result {
 
 	retData.FileId = musFileId
 	retData.MusicId = musicId
+	retData.State = "new"
 	return c.apiOk("OK", &retData)
 }

@@ -15,15 +15,24 @@ public class ApiService implements HttpMan.OnHttpListener
 
 	public static class ErrorInfo
 	{
-		public ErrorInfo(int c, String m) { code = c; msg = m; }
+		public ErrorInfo(int c, String m, HttpMan.QuerySpec s) { code = c; msg = m; spec = s; }
 
 		public int code;
 		public String msg;
+		public HttpMan.QuerySpec spec;
 	}
 
 	public static final int JOBID_URL_LOGIN = 10;
 	public static final int JOBID_LOGIN_TOOL = 11;
 	public static final int JOBID_UPLOAD_MUSIC = 20;
+
+	public static class UploadResult
+	{
+		public String srcPath;
+		public String state;
+		public int fileId;
+		public int musicId;
+	}
 
 	private String m_apiBaseUrl;
 	private String m_sessKey;
@@ -125,12 +134,19 @@ public class ApiService implements HttpMan.OnHttpListener
 
 		HttpMan.QuerySpec spec = getEmptySpec("/api/upload/music");
 		spec.postBody = mfd;
+		spec.addUserVar("srcPath", item.filePath);
 		sendRequest(lsnr, JOBID_UPLOAD_MUSIC, spec);
 	}
 
-	private String parseUploadMusic(JSONObject json) throws JSONException
+	private UploadResult parseUploadMusic(HttpMan.QuerySpec spec, JSONObject json) throws JSONException
 	{
-		return "TODO";
+		UploadResult ret = new UploadResult();
+		ret.srcPath = spec.getUserVar("srcPath");
+		ret.state = json.getString("state");
+		ret.fileId = json.getInt("file_id");
+		ret.musicId = json.getInt("music_id");
+
+		return ret;
 	}
 
 
@@ -169,7 +185,7 @@ public class ApiService implements HttpMan.OnHttpListener
 			errMsg = "HTTP Failure: " + Integer.toString(failHttpStatus);
 		}
 
-		callAgentError(lsnr, jobId, new ErrorInfo(failHttpStatus, errMsg));
+		callAgentError(lsnr, jobId, new ErrorInfo(failHttpStatus, errMsg, spec));
 	}
 
 	@Override
@@ -182,7 +198,7 @@ public class ApiService implements HttpMan.OnHttpListener
 
 		if (spec.resultType != HttpMan.RESULT_JSON)
 		{
-			callAgentError(lsnr, jobId, new ErrorInfo(HttpMan.ERROR_RESULT_ERROR, "Invalid AgentResType " + spec.resultType));
+			callAgentError(lsnr, jobId, new ErrorInfo(HttpMan.ERROR_RESULT_ERROR, "Invalid AgentResType " + spec.resultType, spec));
 			return;
 		}
 
@@ -193,7 +209,7 @@ public class ApiService implements HttpMan.OnHttpListener
 			int code = json.getInt("code");
 			if (code != 0)
 			{
-				callAgentError(lsnr, jobId, new ErrorInfo(code, ApiService.getSafeString(json, "msg")));
+				callAgentError(lsnr, jobId, new ErrorInfo(code, ApiService.getSafeString(json, "msg"), spec));
 				return;
 			}
 
@@ -215,11 +231,11 @@ public class ApiService implements HttpMan.OnHttpListener
 				break;
 
 			case JOBID_UPLOAD_MUSIC:
-				param = parseUploadMusic(data);
+				param = parseUploadMusic(spec, data);
 				break;
 
 			default:
-				callAgentError(lsnr, jobId, new ErrorInfo(HttpMan.ERROR_RESULT_ERROR, "Unknown JobId: " + jobId));
+				callAgentError(lsnr, jobId, new ErrorInfo(HttpMan.ERROR_RESULT_ERROR, "Unknown JobId: " + jobId, spec));
 				return;
 			}
 
@@ -228,7 +244,7 @@ public class ApiService implements HttpMan.OnHttpListener
 		catch(JSONException ex)
 		{
 			ex.printStackTrace();
-			callAgentError(lsnr, jobId, new ErrorInfo(1, ex.getMessage()));
+			callAgentError(lsnr, jobId, new ErrorInfo(1, ex.getMessage(), spec));
 		}
 	}
 

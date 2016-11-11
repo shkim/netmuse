@@ -1,5 +1,6 @@
 package netmuse.uploader;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -102,9 +103,7 @@ public class Util
 	{
 		MessageDigest digest = MessageDigest.getInstance("MD5");
 		digest.update(data);
-		byte[] md5sum = digest.digest();
-		BigInteger bigInt = new BigInteger(1, md5sum);
-		return bigInt.toString(16);
+		return DatatypeConverter.printHexBinary(digest.digest()).toLowerCase();
 	}
 
 	public static String getMD5Sum(File file) throws Exception
@@ -118,12 +117,8 @@ public class Util
 		{
 			digest.update(buffer, 0, read);
 		}
-
-		byte[] md5sum = digest.digest();
-		BigInteger bigInt = new BigInteger(1, md5sum);
-		String output = bigInt.toString(16);
-
 		is.close();
-		return output;
+
+		return DatatypeConverter.printHexBinary(digest.digest()).toLowerCase();
 	}
 }
