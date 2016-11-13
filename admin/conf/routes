@@ -20,7 +20,15 @@ POST	/auth/loginWithToken					Auth.LoginWithToken
 GET		/auth/logout							Auth.Logout
 
 GET		/admin/dashboard						Admin.Dashboard
+
+POST	/admin/quickfix/title					Admin.QuickfixMusicTitle
+POST	/admin/quickfix/artist					Admin.QuickfixArtistName
+
 GET		/admin/music/list						Admin.MusicList
+POST	/admin/music/list.json					Admin.JsonMusicList
+GET		/admin/music/info/:musicId				Admin.MusicInfo
+GET		/admin/music/file/:fileId				Admin.MusicFileInfo
+
 GET		/admin/artist/list						Admin.ArtistList
 GET		/admin/album/list						Admin.AlbumList
 GET		/admin/playlist/list					Admin.PlaylistList

@@ -1,8 +1,317 @@
-{{set . "title" "음악 목록"}}
-{{set . "lmenu" "t2a"}}
+{{set . "title" "Music File List" -}}
+{{set . "lmenu" "t2a" -}}
+{{set . "useDT" true -}}
+{{set . "useTPL" true -}}
 {{template "tpl_head.html" .}}
+<style>
+td.details-control {
+	background: url('/public/img/detail_plus.png') no-repeat center center;
+	background-size: 24px 24px;
+	width: 20px;
+    cursor: pointer;
+}
+tr.details td.details-control {
+	background: url('/public/img/detail_minus.png') no-repeat center center;
+	background-size: 24px 24px;
+}
+.input-group .text {
+	padding-top: 8px;
+}
+</style>
+<div class="col-md-12 col-sm-12 col-xs-12">
+	<div class="x_panel">
+		<div class="x_title">
+			<h2>All Music Files</h2>
+			<div class="clearfix"></div>
+		</div>
+
+<table id="jqdt1" class="table table-striped table-bordered dataTable nowrap">
+	<thead>
+		<tr>
+			<th></th>
+			<th>ID</th>
+			<th>Title</th>
+			<th>Artist</th>
+			<th>Duration</th>
+			<th>Size</th>
+			<th>Type</th>
+		</tr>
+	</thead>
+</table>
+
+    </div>
+</div>
+
 
 {{template "tpl_mid.html" .}}
+{{`<script id="tplDetail" type="text/html">
+
+<div class="x_content">
+	<form class="form-horizontal form-label-left">
+		<div class="form-inline">
+
+<div class="row">
+	<label class="control-label col-sm-2">Title</label>
+	<div class="input-group col-sm-10">
+		<input type="text" id="title_{{=it.DT_RowId}}" class="form-control" value="{{=it.title}}">
+		<span class="input-group-btn">
+			<button type="button" class="btn btn-primary" onclick="quickFixTitle({{=it.DT_RowId}},{{=it.musicId}})">Quick Fix</button>
+		</span>
+	</div>
+</div>
+
+<div class="row">
+	<label class="control-label col-sm-2">Artist</label>
+	<div class="input-group col-sm-10">
+		<input type="text" id="artist_{{=it.DT_RowId}}" class="form-control" value="{{=it.artist}}">
+		<span class="input-group-btn">
+			<button type="button" class="btn btn-primary" onclick="quickFixArtist({{=it.DT_RowId}},{{=it.artistId}})">Quick Fix</button>
+		</span>
+	</div>
+</div>
+
+<div class="row">
+	<label class="control-label col-sm-2">Album</label>
+	<div class="input-group col-sm-10">
+		<input type="text" id="album_{{=it.DT_RowId}}" class="form-control" value="{{=it.album}}" readonly>
+		<span class="input-group-btn">
+			<button type="button" class="btn btn-primary" onclick="gotoAlbum({{=it.albumId}})">Go</button>
+		</span>
+	</div>
+</div>
+
+<div class="row">
+	<label class="control-label col-sm-2">Uploader</label>
+	<div class="input-group col-sm-10">
+		<div class="text"><a href="/admin/user/info/{{=it.userId}}">{{=it.user}}</a> at {{=it.date}}</div>
+	</div>
+</div>
+
+<div class="row">
+	<label class="control-label col-sm-2">File Info</label>
+	<div class="input-group col-sm-10">
+		<div class="text">{{=it.fileTypeName}} format {{=it.fileSizeComma}} bytes</div>
+	</div>
+</div>
+
+</div></form></div>
+
+
+</script>`| raw}}
 <script>
+var jqdt;
+
+function quickFixTitle(fid,mid)
+{
+	var elm = $('#title_'+fid);
+	var title = elm.val().trim();
+	if (title == '')
+	{
+		alert("Please input the title of the music.");
+		elm.focus();
+		return;
+	}
+
+	if (!confirm("Change music title to: "+title+" ?"))
+	{
+		return;
+	}	
+
+	elm.attr('readonly',1);
+
+	$.ajax({
+		type: "POST",
+		url: "/admin/quickfix/title",
+		data: { "title": title, "music_id":mid  },
+		success: function(result,status,xhr) {
+			if (result.code == 0)
+			{
+				jqdt.ajax.reload(null,false);
+				return;
+			}
+
+			if (result.code == 1)
+			{
+				if (confirm("Can't change when two or more files share the same music information.\nGo to the detailed music information page?"))
+				{
+					location.href = "/admin/music/info/"+mid;
+				}
+				return;
+			}
+
+			alert(result.error);	
+		},
+		error: function(xhr,status,error) {
+			alert(error)
+		},
+		complete: function(xhr,status) {
+			elm.removeAttr('readonly');
+		}
+	});		
+}
+
+function quickFixArtist(fid,aid)
+{
+	var elm = $('#artist_'+fid);
+	var artist = elm.val().trim();
+	if (artist == '')
+	{
+		alert("Please input the name of the artist.");
+		elm.focus();
+		return;
+	}
+
+	if (!confirm("Change artist name to: "+artist+" ?"))
+	{
+		return;
+	}	
+
+	elm.attr('readonly',1);
+
+	$.ajax({
+		type: "POST",
+		url: "/admin/quickfix/artist",
+		data: { "artist": artist, "artist_id":aid  },
+		success: function(result,status,xhr) {
+			if (result.code == 0)
+			{
+				jqdt.ajax.reload(null,false);
+				return;
+			}
+
+			if (result.code == 1)
+			{
+				if (confirm("Can't change when two or more files share same artist information.\nGo to the detailed artist information page?"))
+				{
+					location.href = "/admin/artist/info/"+aid;
+				}
+				return;
+			}
+
+			alert(result.error);	
+		},
+		error: function(xhr,status,error) {
+			alert(error)
+		},
+		complete: function(xhr,status) {
+			elm.removeAttr('readonly');
+		}
+	});
+}
+
+function gotoAlbum(aid)
+{
+	if (!aid)
+	{
+		alert("No album info");
+		return;
+	}
+
+	if (confirm('Go to album information page?'))
+	{
+		location.href = "/admin/album/info/"+aid;
+	}
+}
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function nameOfFileType(ft) {
+	if (ft == 1)
+		return "MP3";
+	if (ft == 2)
+		return "OGG";
+	if (ft == 3)
+		return "FLAC";
+
+	return "Unknown";
+}
+
+$(function () {
+	var templ = doT.template($('#tplDetail').html());
+
+    jqdt = $("#jqdt1").DataTable({
+        serverSide: true,
+		ordering: false,
+		searching: false,
+        ajax: {
+            url: '/admin/music/list.json',
+            type: 'POST'
+        },
+        columns: [
+			{ "class":"details-control", "data":null, "defaultContent":"" },
+            { "data": "DT_RowId",
+				"fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                    $(nTd).html('<a href="/admin/music/file/'+oData.DT_RowId+'">'+sData+'</a>');
+                }
+			},
+			{ "data": "title",
+                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                    $(nTd).html('<a href="/admin/music/info/'+oData.musicId+'">'+sData+'</a>');
+                }
+            },
+			{ "data": "artist" },
+            { "data": "duration",
+                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+					var m = parseInt(sData / 60);
+					var s = sData % 60;
+					if (s < 10) s = '0'+s;
+                    $(nTd).text(m+':'+s);
+                }
+            },
+			//{ "data": "album" },
+            { "data": "fileSize",
+                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+					var mb = (sData / (1024*1024)).toFixed(1);
+                    $(nTd).text(mb+'MB');
+                }
+            },
+            { "data": "fileType",
+                "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
+                    $(nTd).text(nameOfFileType(sData));
+                }
+            }
+        ]
+    });
+	
+	// Array to track the ids of the details displayed rows
+	var detailRows = [];
+
+	var dateFmtOpts = {
+		weekday: "long", year: "numeric", month: "short",
+		day: "numeric", hour: "2-digit", minute: "2-digit"
+	};
+
+	$('#jqdt1 tbody').on('click','tr td.details-control', function() {
+		var tr = $(this).closest('tr');
+		var row = jqdt.row(tr);
+		var idx = $.inArray(tr.attr('id'), detailRows);
+
+		if(row.child.isShown()) {
+			tr.removeClass('details');
+			row.child.hide();
+			detailRows.splice(idx, 1);
+		} else {
+			tr.addClass('details');
+			var info = row.data();
+			info.date = new Date(info.creDate).toLocaleDateString("ko-KR", dateFmtOpts);
+			info.fileSizeComma = numberWithCommas(info.fileSize);
+			info.fileTypeName = nameOfFileType(info.fileType);
+			row.child(templ(info)).show();
+			if(idx === -1) detailRows.push(tr.attr('id'));
+		}		
+	});
+
+	// On each draw, loop over the `detailRows` array and show any child rows
+	jqdt.on('draw', function() {
+		$.each( detailRows, function(i, id) {
+			$('#'+id+' td.details-control').trigger('click');
+		} );
+	});
+
+	//setTimeout(function() { $('#jqdt1 td.details-control').first().click(); }, 500);
+});
+
 </script>
 {{template "tpl_tail.html" .}}

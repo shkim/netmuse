@@ -82,6 +82,8 @@
                 <rowspec value="center:max(d;4px):noGrow"/>
                 <rowspec value="top:3dlu:noGrow"/>
                 <rowspec value="center:max(d;4px):noGrow"/>
+                <rowspec value="top:3dlu:noGrow"/>
+                <rowspec value="center:max(d;4px):noGrow"/>
                 <colspec value="fill:5dlu:noGrow"/>
                 <colspec value="fill:72px:noGrow"/>
                 <colspec value="left:d:noGrow"/>
@@ -171,7 +173,7 @@
                     <rowspec value="center:d:noGrow"/>
                     <colspec value="fill:d:noGrow"/>
                     <constraints>
-                      <grid row="8" column="3" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                      <grid row="10" column="3" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                       <forms/>
                     </constraints>
                     <properties/>
@@ -188,6 +190,24 @@
                       </component>
                     </children>
                   </grid>
+                  <component id="f28cc" class="javax.swing.JLabel">
+                    <constraints>
+                      <grid row="8" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <forms/>
+                    </constraints>
+                    <properties>
+                      <text value="State:"/>
+                    </properties>
+                  </component>
+                  <component id="9b095" class="javax.swing.JLabel" binding="lbState">
+                    <constraints>
+                      <grid row="8" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <forms/>
+                    </constraints>
+                    <properties>
+                      <text value=""/>
+                    </properties>
+                  </component>
                 </children>
               </grid>
               <scrollpane id="ac5d4">

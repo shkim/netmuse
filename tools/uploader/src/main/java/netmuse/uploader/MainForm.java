@@ -31,6 +31,8 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 	private JTextArea taMetaInfo;
 	private JLabel lbCoverImg;
 	private JPanel pnlCoverImg;
+	private JTextArea taState;
+	private JLabel lbState;
 
 	private FileListModel m_model;
 	private FileListModel.Item m_curEditItem;
@@ -89,15 +91,38 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 		menuItem = new JMenuItem("Import", KeyEvent.VK_I);
 		menuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
 		menuItem.getAccessibleContext().setAccessibleDescription("Browse music file to import");
+		menuItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				//TODO
+			}
+		});
 		menu.add(menuItem);
 
-		menuItem = new JMenuItem("Clear list", KeyEvent.VK_C);
+		menuItem = new JMenuItem("Clear All", KeyEvent.VK_C);
 		menuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.ALT_MASK));
 		menuItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
 				onClearList();
+			}
+		});
+		menu.add(menuItem);
+
+		menu.addSeparator();
+
+		menuItem = new JMenuItem("Exit", KeyEvent.VK_X);
+		menuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.META_MASK));
+		menuItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				JFrame topFrame = (JFrame) SwingUtilities.getWindowAncestor(basePanel);
+				topFrame.setVisible(false);
+				topFrame.dispose();
+				System.exit(0);
 			}
 		});
 		menu.add(menuItem);
@@ -142,6 +167,7 @@ public class MainForm implements FileDrop.Listener, ApiService.Listener
 		tfTitle.setText(item.title);
 		tfArtist.setText(item.artist);
 		tfAlbum.setText(item.album);
+		lbState.setText(item.uploadState == null ? "" : ("<html>"+item.uploadState +"</html>"));
 
 		if (item.metaInfo != null)
 		{

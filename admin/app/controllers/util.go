@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"github.com/revel/revel"
 	"strings"   
+    "strconv"
     "crypto/rand"
     "encoding/base64"
+	"github.com/revel/revel"
 )
 
 func getIpAddr(c *revel.Controller) string {
@@ -39,4 +40,46 @@ func generateRandomBytes(n int) ([]byte, error) {
 func generateRandomString(s int) (string, error) {
     b, err := generateRandomBytes(s)
     return base64.URLEncoding.EncodeToString(b), err
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+type JqDataTable struct {
+    Draw int `json:"draw"`
+    Total int `json:"recordsTotal"`
+    Filtered int `json:"recordsFiltered"`
+    Rows []interface{} `json:"data"`
+}
+
+type JqDtParam struct {
+    SkipRows int
+    FetchRows int
+    SearchKeyword string
+    OrderDir string
+    OrderColumn int
+}
+
+func SetupJqDt(c Admin) (prm JqDtParam, json JqDataTable) {
+    prm.SkipRows, _ = strconv.Atoi(c.Params.Get("start"))
+    prm.FetchRows, _ = strconv.Atoi(c.Params.Get("length"))
+    if prm.FetchRows <= 0 {
+        prm.FetchRows = 15
+    }
+    
+    prm.SearchKeyword = c.Params.Get("search[value]")
+    if prm.SearchKeyword != "" {
+        prm.SearchKeyword = "%"+prm.SearchKeyword+"%"
+    }
+    
+    prm.OrderDir = c.Params.Get("order[0][dir]")
+    prm.OrderColumn, _ = strconv.Atoi(c.Params.Get("order[0][column]"))
+    
+    json.Draw, _ = strconv.Atoi(c.Params.Get("draw"))
+    json.Rows = make([]interface{}, 0)
+    
+    return
+}
+
+func (ret *JqDataTable) append(ptr interface{}) {
+    ret.Rows = append(ret.Rows, ptr)
 }

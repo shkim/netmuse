@@ -6,14 +6,15 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{.title}} - NetMuse</title>
-
 	<!-- Bootstrap -->
 	<link href="/public/css/bootstrap.min.css" rel="stylesheet">
 	<!-- Font Awesome -->
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css">
-
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
 	<!-- Custom Theme Style -->
 	<link href="/public/css/custom.min.css" rel="stylesheet">
+{{if .useDT}}
+  <link href="https://cdn.datatables.net/1.10.12/css/dataTables.bootstrap.min.css" rel="stylesheet">
+{{end}}
 </head>
 <body class="nav-md">
 <div class="container body">
@@ -52,12 +53,12 @@
                   </li>
                   <li><a><i class="fa fa-music"></i> Files <span class="fa fa-chevron-{{if hasPrefix .lmenu "t2"}}down{{else}}left{{end}}"></span></a>
                     <ul class="nav child_menu">
-                      <li class="{{if eq .lmenu "t2a"}}current-page{{end}}"><a href="/admin/music/list">전체 목록</a></li>
+                      <li class="{{if eq .lmenu "t2a"}}current-page{{end}}"><a href="/admin/music/list">All Files</a></li>
                     </ul>
                   </li>
                   <li><a><i class="fa fa-child"></i> Artists <span class="fa fa-chevron-{{if hasPrefix .lmenu "t3"}}down{{else}}left{{end}}"></span></a>
                     <ul class="nav child_menu">
-					  <li class="{{if eq .lmenu "t3a"}}current-page{{end}}"><a href="/admin/artist/list">전체 목록</a></li>
+					  <li class="{{if eq .lmenu "t3a"}}current-page{{end}}"><a href="/admin/artist/list">All Artists</a></li>
                     </ul>
                   </li>
                   <li><a><i class="fa fa-book"></i> Albums <span class="fa fa-chevron-{{if hasPrefix .lmenu "t4"}}down{{else}}left{{end}}"></span></a>
