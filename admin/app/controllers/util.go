@@ -44,14 +44,14 @@ func generateRandomString(s int) (string, error) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-type JqDataTable struct {
+type jqDataTable struct {
     Draw int `json:"draw"`
     Total int `json:"recordsTotal"`
     Filtered int `json:"recordsFiltered"`
     Rows []interface{} `json:"data"`
 }
 
-type JqDtParam struct {
+type jqDtParam struct {
     SkipRows int
     FetchRows int
     SearchKeyword string
@@ -59,7 +59,7 @@ type JqDtParam struct {
     OrderColumn int
 }
 
-func SetupJqDt(c Admin) (prm JqDtParam, json JqDataTable) {
+func setupJqDt(c Admin) (prm jqDtParam, json jqDataTable) {
     prm.SkipRows, _ = strconv.Atoi(c.Params.Get("start"))
     prm.FetchRows, _ = strconv.Atoi(c.Params.Get("length"))
     if prm.FetchRows <= 0 {
@@ -80,6 +80,6 @@ func SetupJqDt(c Admin) (prm JqDtParam, json JqDataTable) {
     return
 }
 
-func (ret *JqDataTable) append(ptr interface{}) {
+func (ret *jqDataTable) append(ptr interface{}) {
     ret.Rows = append(ret.Rows, ptr)
 }

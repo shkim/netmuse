@@ -17,6 +17,12 @@ tr.details td.details-control {
 .input-group .text {
 	padding-top: 8px;
 }
+.id3pic {
+	width: 100%;
+}
+.ptinfo {
+	text-align: center;
+}
 </style>
 <div class="col-md-12 col-sm-12 col-xs-12">
 	<div class="x_panel">
@@ -47,8 +53,14 @@ tr.details td.details-control {
 {{`<script id="tplDetail" type="text/html">
 
 <div class="x_content">
-	<form class="form-horizontal form-label-left">
-		<div class="form-inline">
+<div class="row">
+	<div class="col-sm-3">
+		<img id="photo_{{=it.DT_RowId}}" data-toggle="tooltip" title="#{{=it.photoId}}" class="id3pic">
+		<div id="ptinfo_{{=it.DT_RowId}}" class="ptinfo"></div>
+	</div>
+	<div class="col-sm-9">			
+		<form class="form-horizontal form-label-left">
+			<div class="form-inline">
 
 <div class="row">
 	<label class="control-label col-sm-2">Title</label>
@@ -94,7 +106,7 @@ tr.details td.details-control {
 	</div>
 </div>
 
-</div></form></div>
+</div></div></form></div>
 
 
 </script>`| raw}}
@@ -139,7 +151,7 @@ function quickFixTitle(fid,mid)
 				return;
 			}
 
-			alert(result.error);	
+			alert(result.msg);	
 		},
 		error: function(xhr,status,error) {
 			alert(error)
@@ -188,7 +200,7 @@ function quickFixArtist(fid,aid)
 				return;
 			}
 
-			alert(result.error);	
+			alert(result.msg);	
 		},
 		error: function(xhr,status,error) {
 			alert(error)
@@ -211,6 +223,42 @@ function gotoAlbum(aid)
 	{
 		location.href = "/admin/album/info/"+aid;
 	}
+}
+
+function loadPhoto(fileId,photoId)
+{
+	if (!photoId)
+	{
+		$('#photo_'+fileId).attr('src', "/public/img/nophoto.png");
+		$('#ptinfo_'+fileId).text("No cover image");
+		return;
+	}
+
+	$('#photo_'+fileId).attr('src', "/public/img/wait.gif");
+
+	$.ajax({
+		type: "POST",
+		url: "/admin/photo/info/"+photoId,
+		success: function(result,status,xhr) {
+			if (result.code == 0)
+			{
+				var info = result.data;
+				var imgurl = "/img/photo/"+photoId+'/'+info.objId;
+				$('#photo_'+fileId).attr('src', imgurl);
+				$('#ptinfo_'+fileId).text(info.width + 'x' + info.height + " | " + numberWithCommas(info.fileSize) + " bytes");
+				return;
+			}
+
+			$('#photo_'+fileId).attr('src', "");
+			alert(result.msg);	
+		},
+		error: function(xhr,status,error) {
+			$('#photo_'+fileId).attr('src', "");
+			alert(error)
+		},
+		complete: function(xhr,status) {
+		}
+	});
 }
 
 function numberWithCommas(x) {
@@ -248,7 +296,7 @@ $(function () {
 			},
 			{ "data": "title",
                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
-                    $(nTd).html('<a href="/admin/music/info/'+oData.musicId+'">'+sData+'</a>');
+                    $(nTd).html(sData + ' <a href="/admin/music/file/'+oData.musicId+'"><i class="fa fa-info-circle"></a>');
                 }
             },
 			{ "data": "artist" },
@@ -260,7 +308,6 @@ $(function () {
                     $(nTd).text(m+':'+s);
                 }
             },
-			//{ "data": "album" },
             { "data": "fileSize",
                 "fnCreatedCell": function (nTd, sData, oData, iRow, iCol) {
 					var mb = (sData / (1024*1024)).toFixed(1);
@@ -294,11 +341,13 @@ $(function () {
 			detailRows.splice(idx, 1);
 		} else {
 			tr.addClass('details');
+			
 			var info = row.data();
 			info.date = new Date(info.creDate).toLocaleDateString("ko-KR", dateFmtOpts);
 			info.fileSizeComma = numberWithCommas(info.fileSize);
 			info.fileTypeName = nameOfFileType(info.fileType);
 			row.child(templ(info)).show();
+			loadPhoto(info.DT_RowId,info.photoId);
 			if(idx === -1) detailRows.push(tr.attr('id'));
 		}		
 	});

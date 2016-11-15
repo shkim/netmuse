@@ -29,6 +29,8 @@ POST	/admin/music/list.json					Admin.JsonMusicList
 GET		/admin/music/info/:musicId				Admin.MusicInfo
 GET		/admin/music/file/:fileId				Admin.MusicFileInfo
 
+POST	/admin/photo/info/:photoId				Admin.JsonPhotoInfo
+
 GET		/admin/artist/list						Admin.ArtistList
 GET		/admin/album/list						Admin.AlbumList
 GET		/admin/playlist/list					Admin.PlaylistList
@@ -36,6 +38,9 @@ GET		/admin/user/list						Admin.UserList
 GET		/admin/my/profile						Admin.MyProfile
 POST	/admin/my/profile						Admin.UpdateMyProfile
 POST	/admin/my/toolsession					Admin.UpdateToolSession
+
+GET		/img/photo/:photoId/:objId				MuseApi.GetPhotoImage
+GET		/img/thumb/:photoId/:objId				MuseApi.GetThumbnailImage
 
 GET		/api/url/:target						MuseApi.GetUrl
 GET		/api/_page/login						MuseApi.PcLogin

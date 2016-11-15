@@ -6,7 +6,7 @@ import (
 )
 
 type Auth struct {
-    *revel.Controller
+    App
 }
 
 type UserModel struct {

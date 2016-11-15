@@ -20,7 +20,7 @@ import (
 )
 
 type MuseApi struct {
-	*revel.Controller
+	App
 }
 
 const (
@@ -46,7 +46,7 @@ type apiResult struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-func (c MuseApi) apiOk(msg string, data interface{}) revel.Result {
+func (c App) apiOk(msg string, data interface{}) revel.Result {
 	return c.RenderJson(apiResult{Code: 0, Msg: msg, Data: data})
 }
 
@@ -67,15 +67,15 @@ func apiCodeToMsg(errCode int) string {
 	}
 }
 
-func (c MuseApi) apiError0(errCode int) revel.Result {		
+func (c App) apiError0(errCode int) revel.Result {		
 	return c.RenderJson(apiResult{Code:errCode, Msg:apiCodeToMsg(errCode), Data:nil})
 }
 
-func (c MuseApi) apiErrorMsg(errCode int, msg string) revel.Result {
+func (c App) apiErrorMsg(errCode int, msg string) revel.Result {
 	return c.RenderJson(apiResult{Code:errCode, Msg:msg, Data:nil})
 }
 
-func (c MuseApi) apiErrorData(errCode int, data interface{}) revel.Result {
+func (c App) apiErrorData(errCode int, data interface{}) revel.Result {
 	return c.RenderJson(apiResult{Code:errCode, Msg:apiCodeToMsg(errCode), Data:data})
 }
 
@@ -189,7 +189,7 @@ func saveAndGetPhotoId(photoData []byte, photoMD5 string) (int64, error) {
 	err = gfile.Close()
 	if err != nil {
 		panic("GFile close failed " + err.Error())
-		return 0, err
+		//return 0, err
 	}
 
 	objId := gfile.Id().(bson.ObjectId)
@@ -425,4 +425,63 @@ func (c MuseApi) UploadMusic() revel.Result {
 	retData.MusicId = musicId
 	retData.State = "new"
 	return c.apiOk("OK", &retData)
+}
+
+func imgFormatToExt(fmt int) string {
+	switch(fmt) {
+	case IMGFMT_JPEG:
+		return "jpg"
+	case IMGFMT_PNG:
+		return "png"
+	case IMGFMT_WEBP:
+		return "webp"
+	}
+
+	return "bin"	// unknown
+}
+
+func (c MuseApi) GetPhotoImage(photoId int, objId string) revel.Result {
+	// TODO: only auth user can retrieve the image.
+	var fileType int
+	var fileSize int
+	var fileObjId string
+	err := db.QueryRow(`SELECT file_type,file_size,obj_id FROM photo WHERE id=?`, photoId).Scan(&fileType, &fileSize, &fileObjId)
+	if err != nil {
+		return c.NotFound("Unknown Photo ID")
+	}
+
+	if fileObjId != objId {
+		return c.NotFound("Invalid Object ID")
+	}
+
+	file, err := mgoFS.OpenId(bson.ObjectIdHex(objId))
+	if err != nil {
+		revel.ERROR.Printf("GetPhotoImage OpenId failed: %s\n", err.Error())
+		return c.NotFound(err.Error())
+	}
+
+	return c.RenderBinary(file, "photo."+imgFormatToExt(fileType), revel.Inline, file.UploadDate())
+}
+
+func (c MuseApi) GetThumbnailImage(photoId int, objId string) revel.Result {
+	// TODO: only auth user can retrieve the image.
+	var fileType int
+	var fileSize int
+	var fileObjId string
+	err := db.QueryRow(`SELECT file_type,file_size,obj_id FROM resized_photo WHERE id=?`, photoId).Scan(&fileType, &fileSize, &fileObjId)
+	if err != nil {
+		return c.NotFound("Unknown Photo ID")
+	}
+
+	if fileObjId != objId {
+		return c.NotFound("Invalid Object ID")
+	}
+
+	file, err := mgoFS.OpenId(bson.ObjectIdHex(objId))
+	if err != nil {
+		revel.ERROR.Printf("GetThumbnailImage OpenId failed: %s\n", err.Error())
+		return c.NotFound(err.Error())
+	}
+
+	return c.RenderBinary(file, "thumb."+imgFormatToExt(fileType), revel.Inline, file.UploadDate())
 }

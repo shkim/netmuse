@@ -8,7 +8,7 @@ import (
     "strings"
 	"io/ioutil"
 	"encoding/json"
-    _ "github.com/go-sql-driver/mysql"
+    //_ "github.com/go-sql-driver/mysql"
     "github.com/jmoiron/sqlx"
 	"gopkg.in/mgo.v2"
     "github.com/revel/revel"

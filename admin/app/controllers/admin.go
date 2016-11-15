@@ -43,15 +43,15 @@ func (c Admin) QuickfixMusicTitle() revel.Result {
 	var musFiles int
 	db.QueryRow(`SELECT COUNT(*) FROM musfile WHERE music_id=?`, musicId).Scan(&musFiles)
 	if musFiles > 1 {
-		return c.RenderJson(apiResult{Code:QUICKFIX_SHARE_VIOLATION, Msg: "shared"})
+		return c.apiErrorMsg(QUICKFIX_SHARE_VIOLATION, "shared")
 	}
 
 	_, err := db.Exec("UPDATE music SET name=? WHERE id=?", title, musicId)
 	if err != nil {
-		return c.RenderJson(apiResult{Code:QUICKFIX_ERROR, Msg:err.Error()})
+		return c.apiErrorMsg(QUICKFIX_ERROR, err.Error())
     }
 	
-	return c.RenderJson(apiResult{Code: 0, Msg: "updated", Data: nil})
+	return c.apiOk("updated", nil)
 }
 
 // Update the name of artist, if only one file is associated with that artist.
@@ -65,15 +65,45 @@ func (c Admin) QuickfixArtistName() revel.Result {
 	var numMusics int
 	db.QueryRow(`SELECT COUNT(*) FROM music WHERE artist_id=?`, artistId).Scan(&numMusics)
 	if numMusics > 1 {
-		return c.RenderJson(apiResult{Code:QUICKFIX_SHARE_VIOLATION, Msg: "shared"})
+		return c.apiErrorMsg(QUICKFIX_SHARE_VIOLATION, "shared")		
 	}
 
 	_, err := db.Exec("UPDATE artist SET name=? WHERE id=?", artist, artistId)
 	if err != nil {
-		return c.RenderJson(apiResult{Code:QUICKFIX_ERROR, Msg:err.Error()})
+		return c.apiErrorMsg(QUICKFIX_ERROR, err.Error())		
     }
 	
-	return c.RenderJson(apiResult{Code: 0, Msg: "updated", Data: nil})
+	return c.apiOk("updated", nil)
+}
+
+type photoInfo struct {
+    Id int `db:"id" json:"id"`
+
+	Width int `db:"width" json:"width"`
+	Height int `db:"height" json:"height"`
+	FileSize int `db:"file_size" json:"fileSize"`
+	FileType int `db:"file_type" json:"fileType"`
+	ObjId string `db:"obj_id" json:"objId"`
+
+	ThumbWidth null.Int `db:"thumb_width" json:"thumbWidth"`
+	ThumbHeight null.Int `db:"thumb_height" json:"thumbHeight"`
+	ThumbFileSize null.Int `db:"thumb_file_size" json:"thumbFileSize"`
+	ThumbFileType null.Int `db:"thumb_file_type" json:"thumbFileType"`
+	ThumbObjId null.String `db:"thumb_obj_id" json:"thumbObjId"`
+}
+
+func (c Admin) JsonPhotoInfo(photoId int) revel.Result {
+	var info photoInfo
+	err := db.QueryRowx(`SELECT id, p.width, p.height, p.file_size, p.file_type, p.obj_id,
+r.width thumb_width, r.height thumb_height, r.file_size thumb_file_size, 
+r.file_type thumb_file_type, r.obj_id thumb_obj_id 
+FROM photo p LEFT JOIN resized_photo r ON id WHERE id=?`, photoId).StructScan(&info)
+	if err != nil {
+		revel.INFO.Printf("PhotoInfo id=%d: %s\n", photoId, err.Error())
+		return c.apiErrorMsg(1, err.Error())
+	}
+
+	return c.apiOk("ok", info)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,10 +129,8 @@ type musFileListItem struct {
 	ObjId string `db:"obj_id" json:"objId"`
 }
 
-//const quesListOrderColumns = []string { "qnum", "qtype", "gubun1", "gubun2", "gubun3", "anstype", "message" }
-
 func (c Admin) JsonMusicList() revel.Result {
-	parm, json := SetupJqDt(c)
+	parm, json := setupJqDt(c)
 
     db.QueryRow(`SELECT COUNT(*) FROM musfile`).Scan(&json.Total)	
     json.Filtered = json.Total;
