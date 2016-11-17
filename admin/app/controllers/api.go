@@ -427,14 +427,27 @@ func (c MuseApi) UploadMusic() revel.Result {
 	return c.apiOk("OK", &retData)
 }
 
-func imgFormatToExt(fmt int) string {
-	switch(fmt) {
+func imgFormatToExt(code int) string {
+	switch(code) {
 	case IMGFMT_JPEG:
 		return "jpg"
 	case IMGFMT_PNG:
 		return "png"
 	case IMGFMT_WEBP:
 		return "webp"
+	}
+
+	return "bin"	// unknown
+}
+
+func musicFormatToExt(code int) string {
+	switch(code) {
+	case MUSFMT_MP3:
+		return "mp3"
+	case MUSFMT_OGG:
+		return "ogg"
+	case MUSFMT_FLAC:
+		return "flac"
 	}
 
 	return "bin"	// unknown
@@ -484,4 +497,29 @@ func (c MuseApi) GetThumbnailImage(photoId int, objId string) revel.Result {
 	}
 
 	return c.RenderBinary(file, "thumb."+imgFormatToExt(fileType), revel.Inline, file.UploadDate())
+}
+
+func (c MuseApi) GetMusicFile(musicId, fileId int, objId string) revel.Result {
+	// TODO: only auth user can retrieve the music file.
+	var fileType int
+	var fileSize int
+	var dbObjId string
+	err := db.QueryRow(`SELECT file_type,file_size,obj_id FROM musfile WHERE id=? AND music_id=?`,
+		fileId, musicId).Scan(&fileType, &fileSize, &dbObjId)
+	if err != nil {
+		revel.INFO.Printf("GetMusicFile id=%d: %s\n", fileId, err.Error())
+		return c.NotFound("Unknown File ID")
+	}
+
+	if dbObjId != objId {
+		return c.NotFound("Invalid Musfile Object ID")
+	}
+
+	file, err := mgoFS.OpenId(bson.ObjectIdHex(objId))
+	if err != nil {
+		revel.ERROR.Printf("GetMusicFile OpenId failed: %s\n", err.Error())
+		return c.NotFound(err.Error())
+	}
+
+	return c.RenderBinary(file, "music."+musicFormatToExt(fileType), revel.Inline, file.UploadDate())
 }

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>NetMuse Player</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<style>
+body {
+}
+
+#playbox {
+	position: fixed;
+	bottom: 0;
+    width: 100%;
+    height: 48px;
+    line-height: 48px;
+	color: #fff;
+}
+#playbox > div {
+	padding: 0 6px;
+}
+#playbox .left {
+	float: left;
+	display: inline-block;
+}
+#playbox .right {
+	float: right;
+	display: inline-block;
+}
+#playbox .centre {
+	display: block;
+	text-align: center;
+}
+
+#playbox .btn-flat {
+	padding: 0 8px;
+}
+.btn-flat.pressed {
+	background-color: rgba(0,0,0,0.2) !important;
+}
+
+#playrate {
+	position: fixed;
+	bottom: 48px;
+	height: 4px;
+	width: 100%;
+}
+#playrate > div {
+	margin: 0;
+}
+
+#noAuthScr {
+	position: fixed;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #000;
+	z-index: 999;
+}
+#noAuthScr > div {
+	width: 100%;
+	height: 100%;
+	background:url(/public/img/wait.gif) no-repeat center center;
+}
+
+</style>	    
+</head>
+<body>
+<div class="navbar-fixed">
+	<nav><div class="nav-wrapper">
+		<a href="#" data-activates="slide-out" class="button-collapse"><i class="material-icons">menu</i></a>
+		<a href="#!" class="brand-logo">Network Music</a>
+		<ul class="right hide-on-med-and-down">
+			<li><a href="#!">TEST</a></li>
+		</ul>
+	</div></nav>
+  </div>
+
+<ul id="slide-out" class="side-nav">
+	<li><a href="#!">Menu 1</a></li>
+	<li><a href="#!">Menu 2</a></li>
+</ul>
+
+<div id="playrate">
+	<div class="progress">
+		<div id="ratePlay" class="determinate"></div>
+	</div>
+</div>	
+<div id="playbox" class="red lighten-2">
+	<div class="left">
+		<a id="btnPrev" class="btn-floating btn-small waves-effect waves-light"><i class="material-icons">skip_previous</i></a>
+		<a id="btnPlay" class="btn-floating btn-small waves-effect waves-light"><i class="material-icons">play_arrow</i></a>		
+		<a id="btnNext" class="btn-floating btn-small waves-effect waves-light"><i class="material-icons">skip_next</i></a>  
+	</div>
+	<div class="right">
+		<a id="btnVolume" class="waves-effect waves-light btn-flat"><i class="material-icons">volume_up</i></a>
+		<a id="btnShuffle" class="waves-effect waves-light btn-flat pressed"><i class="material-icons">shuffle</i></a>
+		<a id="btnRepeat" class="waves-effect waves-light btn-flat pressed"><i class="material-icons">repeat</i></a>
+		<a id="btnList" class="waves-effect waves-light btn-flat"><i class="material-icons">list</i></a>
+	</div>
+	<div class="centre">
+test
+	</div>
+</div>
+
+<div id="noAuthScr"><div></div>
+<script src="https://www.gstatic.com/firebasejs/3.5.2/firebase.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/js/materialize.min.js"></script>
+<script>
+firebase.initializeApp({
+	apiKey: "{{.fbApiKey}}",
+	authDomain: "{{.fbAuthDomain}}",
+});
+
+var audioElem;
+var isMusicPlaying;
+
+function loadMusic(url)
+{
+	$('#ratePlay').removeClass("determinate");
+	$('#ratePlay').addClass("indeterminate");
+	audioElem.setAttribute('src', url);
+}
+
+function onCanPlay()
+{
+	$('#ratePlay').removeClass("indeterminate");
+	$('#ratePlay').addClass("determinate");
+	$('#ratePlay').css("width", "0");
+
+	isMusicPlaying = false;
+}
+
+function onUpdateTime()
+{
+	var percent = audioElem.currentTime * 100 / audioElem.duration;
+	$('#ratePlay').css("width", percent+'%');
+}
+
+function onClickPlay(btn)
+{
+	if (isMusicPlaying)
+	{
+		isMusicPlaying = false;
+		audioElem.pause();
+		btn.find('i').text("play_arrow");
+		console.log("pause music");
+	}
+	else
+	{
+		isMusicPlaying = true;
+		audioElem.play();
+		btn.find('i').text("pause");
+		console.log("play music");
+	}
+}
+
+function onAuthReady()
+{
+	$('#noAuthScr').hide();
+	$(".button-collapse").sideNav();
+
+	audioElem = document.createElement('audio');
+    loadMusic('http://localhost:9000/music/19/24/5825b8a5c7afb5ef724f85c5'); // test
+
+    audioElem.addEventListener('ended', function() {
+		console.log("music ended");
+    }, false);
+    
+    audioElem.addEventListener("canplay",function() {
+		onCanPlay();        
+    });
+    
+    audioElem.addEventListener("timeupdate",function() {
+		onUpdateTime();
+    });
+    
+    $('#btnPlay').click(function() {
+		onClickPlay($(this));
+    });
+
+	$('#btnPrev').click(function() {
+		audioElem.currentTime = 0;
+    });
+}
+
+function initAuth()
+{
+	firebase.auth().getRedirectResult().then(function(result) {
+		if (result.credential) {
+			var token = result.credential.accessToken;
+			console.log("got token: " + token);
+		} else {
+			console.log("got no token");
+		}
+
+		var user = result.user;
+	}).catch(function(error) {
+		var errorCode = error.code;
+		var errorMessage = error.message;
+		var email = error.email;
+		var credential = error.credential;
+
+		if (errorCode === 'auth/account-exists-with-different-credential') {
+			alert('You have already signed up with a different auth provider for that email.');
+		} else {
+			console.error(error);
+		}
+
+		location.href = "/player/login";
+	});
+
+	firebase.auth().onAuthStateChanged(function(user) {
+		if (user) {
+			var displayName = user.displayName;
+			var email = user.email;
+			var emailVerified = user.emailVerified;
+			var photoURL = user.photoURL;
+			var isAnonymous = user.isAnonymous;
+			var uid = user.uid;
+			var providerData = user.providerData;
+
+			console.log("Signed? " + JSON.stringify(user, null, '  '));
+			onAuthReady();
+		} else {
+			location.href = "/player/login";
+		}
+	});
+}
+
+$(initAuth);
+
+</script>
+</body></html>

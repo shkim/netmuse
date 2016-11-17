@@ -42,7 +42,12 @@ POST	/admin/my/toolsession					Admin.UpdateToolSession
 GET		/img/photo/:photoId/:objId				MuseApi.GetPhotoImage
 GET		/img/thumb/:photoId/:objId				MuseApi.GetThumbnailImage
 
+GET		/music/:musicId/:fileId/:objId			MuseApi.GetMusicFile
+
 GET		/api/url/:target						MuseApi.GetUrl
 GET		/api/_page/login						MuseApi.PcLogin
 POST	/api/login/tool							MuseApi.LoginTool
 POST	/api/upload/music						MuseApi.UploadMusic
+
+GET		/player									App.Player
+GET		/player/login							App.PlayerLogin
