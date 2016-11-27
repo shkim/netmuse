@@ -12,6 +12,23 @@
 body {
 }
 
+#noAuthScr {
+	position: fixed;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #000;
+	z-index: 999;
+}
+#noAuthScr > div {
+	width: 100%;
+	height: 100%;
+	background:url(/public/img/wait.gif) no-repeat center center;
+}
+
+/* Player CSS */
+
 #playbox {
 	position: fixed;
 	bottom: 0;
@@ -30,10 +47,70 @@ body {
 #playbox .right {
 	float: right;
 	display: inline-block;
+	position: relative;
 }
 #playbox .centre {
-	display: block;
 	text-align: center;
+}
+#playbox .centre div {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#playbox .centre .title {
+	font-size: 16px;
+	line-height: 28px;
+	font-family: serif;	
+}
+#playbox .centre .artist {
+	font-size: 10px;
+	line-height: 16px;
+	font-family: sans-serif;
+	opacity: 0.5;
+}
+
+#volSlide {
+	position: absolute;
+	left: 6px;
+	bottom: 5px;
+	width: 34px;
+	height: 0px;
+	border-radius: 3px;
+	transition: height .3s;
+	overflow: hidden;
+}
+#volSlide.show {
+	height: 150px;
+}
+#volSlide .bar {
+	background-color: rgba(255,255,255, 0.3);	
+	border-radius: 6px;
+	position: absolute;
+	top: 6px;
+	bottom: 40px;
+	left: 13px; 
+	width: 8px;
+}
+#volSlide .bar .fill {
+	background-color: #fff;
+	border-radius: 6px;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	top: 10%;
+}
+#volSlide .thumb {
+	background-color: #fff;
+	position: absolute;
+	left: 10px;
+	bottom: 120px;
+	width: 14px;
+	height: 14px;
+	border-radius: 7px;
+}
+#btnVolume {
+	z-index: 5;
 }
 
 #playbox .btn-flat {
@@ -45,27 +122,37 @@ body {
 
 #playrate {
 	position: fixed;
+	width: 100%;
 	bottom: 48px;
-	height: 4px;
-	width: 100%;
+	height: 10px;
+	overflow: hidden;
 }
-#playrate > div {
-	margin: 0;
-}
-
-#noAuthScr {
-	position: fixed;
+#playrate .bar {
+	position: absolute;
 	left: 0;
-	top: 0;
-	right: 0;
 	bottom: 0;
-	background-color: #000;
-	z-index: 999;
+	height: 5px;
+	transition: height .2s;
 }
-#noAuthScr > div {
+#playrate:hover .bar {
+	height: 10px;
+}
+#playrate .bar.base {
+	background-color: #000;
 	width: 100%;
-	height: 100%;
-	background:url(/public/img/wait.gif) no-repeat center center;
+}
+#playrate .bar.buffer {
+	background-color: #fff;
+	opacity: 0.3;
+	transition: width .3s linear;
+}
+#playrate .bar.current {
+	background-color: #26a69a;
+	transition: width .2s linear;
+}
+#playrate .bar.userseek {
+	background-color: #fff;
+	opacity: 0.4;
 }
 
 </style>	    
@@ -86,10 +173,12 @@ body {
 	<li><a href="#!">Menu 2</a></li>
 </ul>
 
+<!-- PLAYER UI -->
 <div id="playrate">
-	<div class="progress">
-		<div id="ratePlay" class="determinate"></div>
-	</div>
+	<div class="bar base"></div>
+	<div class="bar buffer"></div>
+	<div class="bar current"></div>
+	<div class="bar userseek"></div>
 </div>	
 <div id="playbox" class="red lighten-2">
 	<div class="left">
@@ -98,13 +187,18 @@ body {
 		<a id="btnNext" class="btn-floating btn-small waves-effect waves-light"><i class="material-icons">skip_next</i></a>  
 	</div>
 	<div class="right">
+		<div id="volSlide" class="red lighten-2">
+			<div class="bar"><div class="fill"></div></div>
+			<div class="thumb"></div>
+		</div>
 		<a id="btnVolume" class="waves-effect waves-light btn-flat"><i class="material-icons">volume_up</i></a>
-		<a id="btnShuffle" class="waves-effect waves-light btn-flat pressed"><i class="material-icons">shuffle</i></a>
 		<a id="btnRepeat" class="waves-effect waves-light btn-flat pressed"><i class="material-icons">repeat</i></a>
+		<a id="btnShuffle" class="waves-effect waves-light btn-flat pressed"><i class="material-icons">shuffle</i></a>
 		<a id="btnList" class="waves-effect waves-light btn-flat"><i class="material-icons">list</i></a>
 	</div>
 	<div class="centre">
-test
+		<div class="title">Long long title long long long</div>
+		<div class="artist">Artist name</div>
 	</div>
 </div>
 
@@ -118,75 +212,133 @@ firebase.initializeApp({
 	authDomain: "{{.fbAuthDomain}}",
 });
 
-var audioElem;
-var isMusicPlaying;
-
-function loadMusic(url)
+function secsToMinSec(s)
 {
-	$('#ratePlay').removeClass("determinate");
-	$('#ratePlay').addClass("indeterminate");
-	audioElem.setAttribute('src', url);
+	var m = Math.floor(s / 60).toFixed(0);
+	var s = (s % 60).toFixed(0);
+	if (s < 10)
+		s = '0'+s;
+	return m+':'+s;
 }
 
-function onCanPlay()
+function MusePlayer()
 {
-	$('#ratePlay').removeClass("indeterminate");
-	$('#ratePlay').addClass("determinate");
-	$('#ratePlay').css("width", "0");
+	var barBox = $('#playrate');
+	var barBuffer = $("#playrate .bar.buffer");
+	var barCurrent = $("#playrate .bar.current");
+	var barSeek = $("#playrate .bar.userseek");
+	var btnVol = $("#btnVolume");
+	var barVSlide = $("#volSlide");
 
-	isMusicPlaying = false;
-}
+	var isFileLoaded;
+	var isMusicPlaying;
+	var duraText;
+	var audioElem = document.createElement('audio');
 
-function onUpdateTime()
-{
-	var percent = audioElem.currentTime * 100 / audioElem.duration;
-	$('#ratePlay').css("width", percent+'%');
-}
-
-function onClickPlay(btn)
-{
-	if (isMusicPlaying)
-	{
+	function reset() {
+		barBuffer.css("width", "0");
+		barCurrent.css("width", "0");
+		isFileLoaded = false;
 		isMusicPlaying = false;
-		audioElem.pause();
-		btn.find('i').text("play_arrow");
-		console.log("pause music");
+		duraText = null;
 	}
-	else
+
+    audioElem.addEventListener('ended', function() {
+		console.log("music ended");
+    }, false);
+    
+	audioElem.addEventListener("loadedmetadata",function() {
+		duraText = secsToMinSec(audioElem.duration);
+	});
+
+    audioElem.addEventListener("canplay",function() {
+		isFileLoaded = true;
+		isMusicPlaying = false;
+    });
+
+	audioElem.addEventListener("progress",function() {
+		if (!audioElem.duration)
+			return;
+
+		var buffEnd = audioElem.buffered.end(audioElem.buffered.length - 1);
+		barBuffer.css("width", ((buffEnd / audioElem.duration)*100)+'%');
+    });
+    
+    audioElem.addEventListener("timeupdate",function() {
+		var rate = audioElem.currentTime / audioElem.duration;
+		duraText = secsToMinSec(audioElem.duration);
+		barCurrent.css("width", (rate*100)+'%');
+    });
+
+	barBox.on('mousemove', function(event) {
+		if (!audioElem.duration)
+			return;
+
+		var rate = event.pageX / window.innerWidth;
+		barSeek.css("width", (rate*100)+'%');
+	});
+
+	barBox.on('mouseout', function() {
+		barSeek.css("width", '0');
+	});
+
+	btnVol.on("mousemove", function() {
+		if (!barVSlide.hasClass('show'))
+			barVSlide.addClass('show');
+	});
+	barVSlide.on("mouseout", function() {
+		barVSlide.removeClass('show');
+	});
+
+	var self = this;
+		
+	self.loadMusic = function(url)
 	{
-		isMusicPlaying = true;
-		audioElem.play();
-		btn.find('i').text("pause");
-		console.log("play music");
+		reset();
+		audioElem.setAttribute('src', url);
 	}
+
+	self.clickPlay = function(btn)
+	{
+		if (isMusicPlaying)
+		{
+			isMusicPlaying = false;
+			audioElem.pause();
+			btn.find('i').text("play_arrow");
+			console.log("pause music");
+		}
+		else
+		{
+			isMusicPlaying = true;
+			audioElem.play();
+			btn.find('i').text("pause");
+			console.log("play music");
+		}
+	}
+
+	self.clickPrev = function()
+	{
+		audioElem.currentTime = 0;
+	}
+
 }
+
+var musePlayer;
 
 function onAuthReady()
 {
 	$('#noAuthScr').hide();
 	$(".button-collapse").sideNav();
 
-	audioElem = document.createElement('audio');
-    loadMusic('http://localhost:9000/music/19/24/5825b8a5c7afb5ef724f85c5'); // test
-
-    audioElem.addEventListener('ended', function() {
-		console.log("music ended");
-    }, false);
-    
-    audioElem.addEventListener("canplay",function() {
-		onCanPlay();        
-    });
-    
-    audioElem.addEventListener("timeupdate",function() {
-		onUpdateTime();
-    });
+	musePlayer = new MusePlayer();
+	musePlayer.loadMusic('http://localhost:9000/music/19/24/5825b8a5c7afb5ef724f85c5');
     
     $('#btnPlay').click(function() {
-		onClickPlay($(this));
+		musePlayer.clickPlay($(this));
     });
 
 	$('#btnPrev').click(function() {
-		audioElem.currentTime = 0;
+		musePlayer.clickPrev();		
     });
 }
 
